@@ -28,7 +28,8 @@
         "resources",
         "intents",
         "logic",
-        "states"
+        "states",
+        "readme.md"
       ],
       "quick": true
     },
