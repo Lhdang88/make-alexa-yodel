@@ -3,6 +3,8 @@ const Alexa = require('alexa-sdk');
 const resources = require('./resources/resources');
 const STATES = require('./lib/states');
 
+let feedbackToAnswer = '';
+
 const handlers = {
     'LaunchRequest': function () {
         if(this.attributes['states'] === undefined || this.attributes['states'] === null) {
@@ -14,11 +16,6 @@ const handlers = {
         this.emit('AMAZON.HelpIntent');
     },
     'RequestToYodelSong': function () {
-        console.log('RequestToYodelSong emitted');
-        console.log(`challengeCounter: ${this.attributes['challengeCounter']}`);
-        console.log(`challengeIdx: ${this.attributes['challengeIdx']}`);
-        console.log(`states: ${this.attributes['states']}`);
-
         const song = ((this.event.request.intent.slots || {}).song || {}).value || 'default';
         console.log(`Requested to yodel ${song}-song`);
         this.attributes['song'] = song;
@@ -34,9 +31,6 @@ const handlers = {
     'AskChallenge': function () {
         //debug
         console.log('AskChallenge emitted');
-        console.log(`challengeCounter: ${this.attributes['challengeCounter']}`);
-        console.log(`challengeIdx: ${this.attributes['challengeIdx']}`);
-        console.log(`states: ${this.attributes['states']}`);
         // Create speech output
         const excuses = this.t('EXCUSES');
         const excuseIndex = Math.floor(Math.random() * excuses.length);
@@ -45,7 +39,7 @@ const handlers = {
         const challenges = this.t('CHALLENGES');
         const challengeIndex = Math.floor(Math.random() * challenges.length);
         const challenge = challenges[challengeIndex];
-        const speechOutput = `${excuse} ${challenge}`;
+        const speechOutput = `${feedbackToAnswer} ${excuse} ${challenge}`;
 
         const reprompts = this.t('REPROMPTS');
         const repromptIndex = Math.floor(Math.random() * reprompts.length);
@@ -59,9 +53,6 @@ const handlers = {
     'RepromptChallenge': function (key) {
         //debug
         console.log('RepromptChallenge emitted');
-        console.log(`challengeCounter: ${this.attributes['challengeCounter']}`);
-        console.log(`challengeIdx: ${this.attributes['challengeIdx']}`);
-        console.log(`states: ${this.attributes['states']}`);
         // Create speech output
         const excuses = this.t('EXCUSES');
         const excuseIndex = Math.floor(Math.random() * excuses.length);
@@ -71,23 +62,16 @@ const handlers = {
         const challengeIdx = this.attributes['challengeIdx'];
         const challenge = challenges[challengeIdx];
 
+        const speechOutput = `${feedbackToAnswer} ${excuse} ${challenge}`;
 
-        const wrongAnswer = key !== undefined ? `${key} brauche ich nicht.` : '';
-        const speechOutput = `${wrongAnswer} ${excuse} ${challenge}`;
-
-        const reprompts = this.t('REPROMTS');
+        const reprompts = this.t('REPROMPTS');
         const repromptIndex = Math.floor(Math.random() * reprompts.length);
         const reprompt = reprompts[repromptIndex];
 
         this.emit(':askWithCard', speechOutput, reprompt, this.t('SKILL_NAME'));
     },
     'SolveChallenge': function () {
-        console.log('SolveChallenge emitted');
-        console.log(`challengeCounter: ${this.attributes['challengeCounter']}`);
-        console.log(`challengeIdx: ${this.attributes['challengeIdx']}`);
-        console.log(`states: ${this.attributes['states']}`);
-
-        const key = ((this.event.request.intent.slots || {}).key || {}).value || 'n/a';
+        const key = ((this.event.request.intent.slots || {}).key || {}).value || 'nichts';
         console.log(`Trying to solve challenge ${this.attributes['challengeIdx']} with ${key}`);
 
         const solutions = this.t('SOLUTIONS');
@@ -103,11 +87,13 @@ const handlers = {
           if(this.attributes['challengeCounter'] > this.attributes['challengesToSolve']) {
             this.emit(':tellWithCard', text, this.t('SKILL_NAME'), text);
           } else {
+            feedbackToAnswer = `Vielen Dank Schatz, ${key} war was ich gebraucht habe.`;
             this.emit('AskChallenge');
           }
         } else {
           console.log(`Could not solve correctly`);
-          this.emit('RepromptChallenge', key);
+          feedbackToAnswer = `Nein Schatz, ${key} war nicht das was ich gebraucht habe.`;
+          this.emit('RepromptChallenge');
         }
     },
     'AMAZON.HelpIntent': function () {
